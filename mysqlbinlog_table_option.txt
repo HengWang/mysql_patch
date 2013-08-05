@@ -1,0 +1,33 @@
+## Copyright (c) 2013, Heng.Wang. All rights reserved.
+## 
+## mysqlbinlog toolkit patch, add --table/-t option.
+##   
+## @Author: Heng.Wang
+## @Date  : 08/05/2013
+## @Email : wangheng.wh@alibaba-inc.com
+##          king_wangheng@163.com
+##          wangheng.king@gmail.com          
+## @Github: https://github.com/HengWang/
+## @Blog  : http://hengwang.blog.chinaunix.net
+
+Function:
+  Add -T/--table option to filter out the given table events
+  in given database of -d/--database option. The function 
+  just valid in Row mode of binlog and load data scenes. 
+	If not Row mode, the table of -T/--table option will be
+  ignore and printing the events of given database. Because 
+  the Query_log_event has not tables variable to check, in
+  order not to pull in new problem, I modify the structure
+  of Query_log_event nothing.
+    Also in load data process scenes, -T/--table option is 
+  useful to filter out the given table events.	
+
+Usage:
+  compile:
+    The source is based on mysql-5.5.18.
+      patch -p1 -R < mysqlbinlog_table_option.diff
+  application:
+	mysqlbinlog --help to show the help information.
+	mysqlbinlog -v -v -v --database=test --table=test 
+	            mysql-bin.XXXXXX
+    mysqlbinlog -v -v -v -d test -T test mysql-bin.XXXXXX

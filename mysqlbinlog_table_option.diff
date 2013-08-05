@@ -1,0 +1,99 @@
+diff -uNr a/client/mysqlbinlog.cc b/client/mysqlbinlog.cc
+--- a/client/mysqlbinlog.cc	2013-08-05 18:03:37.017778872 +0800
++++ b/client/mysqlbinlog.cc	2011-11-14 07:47:11.000000000 +0800
+@@ -83,11 +83,6 @@
+ static const char* sock= 0;
+ static char *opt_plugin_dir= 0, *opt_default_auth= 0;
+ 
+-/* One table to filter out.
+- * (Added by wangheng, email to wangheng.wh@alibaba-inc.com) */
+-static bool one_table=0;
+-static char* table_name = 0;
+-
+ #ifdef HAVE_SMEM
+ static char *shared_memory_base_name= 0;
+ #endif
+@@ -635,24 +630,6 @@
+ }
+ 
+ 
+-/*
+- * Check the given table should be filtered out, according to the --table=X option
+- * @param 
+- *   log_tbname: Name of table.
+- * @return
+- *   0 : Skip.
+- *   N : Filtered out.
+- * @author:  wangheng
+- * @email  : wangheng.wh@alibaba-inc.com
+- */
+-static bool shall_skip_table(const char *log_tbname)
+-{
+-  return one_table && 
+-      (log_tbname != NULL) &&
+-      strcmp(log_tbname, table_name);
+-}
+-
+-
+ /**
+   Prints the given event in base64 format.
+ 
+@@ -795,10 +772,7 @@
+         related Append_block and Exec_load.
+         Note that Load event from 3.23 is not tested.
+       */
+-      if (shall_skip_database(ce->db)
+-              /* Filtered out the events of given table.
+-               * (Added by wangheng, email to wangheng.wh@alibaba-inc.com) */
+-              || shall_skip_table(ce->table_name))
++      if (shall_skip_database(ce->db))
+         goto end;                // Next event
+       /*
+ 	We print the event, but with a leading '#': this is just to inform 
+@@ -932,10 +906,7 @@
+     case TABLE_MAP_EVENT:
+     {
+       Table_map_log_event *map= ((Table_map_log_event *)ev);
+-      if (shall_skip_database(map->get_db_name())
+-              /* Filtered out the events of given table.
+-               * (Added by wangheng, email to wangheng.wh@alibaba-inc.com) */
+-              || shall_skip_table(map->get_table_name()))
++      if (shall_skip_database(map->get_db_name()))
+       {
+         print_event_info->m_table_map_ignored.set_table(map->get_table_id(), map);
+         destroy_evt= FALSE;
+@@ -1180,12 +1151,6 @@
+    &stop_position, &stop_position, 0, GET_ULL,
+    REQUIRED_ARG, (ulonglong)(~(my_off_t)0), BIN_LOG_HEADER_SIZE,
+    (ulonglong)(~(my_off_t)0), 0, 0, 0},
+-   /* Add the -t/--table option. 
+-    * (Added by wangheng, email to wangheng.wh@alibaba-inc.com) */
+-  {"table", 'T', "List entries for just this table in given database of"
+-   " -d/--database option. (row mode only).",
+-   &table_name, &table_name, 0, GET_STR_ALLOC, REQUIRED_ARG,
+-   0, 0, 0, 0, 0, 0},
+   {"to-last-log", 't', "Requires -R. Will not stop at the end of the \
+ requested binlog but rather continue printing until the end of the last \
+ binlog of the MySQL server. If you send the output to the same MySQL server, \
+@@ -1277,9 +1242,6 @@
+ {
+   my_free(pass);
+   my_free(database);
+-  /* Free the table name. 
+-   * (Added by wangheng, email to wangheng.wh@alibaba-inc.com) */
+-  my_free(table_name);
+   my_free(host);
+   my_free(user);
+   my_free(dirname_for_local_load);
+@@ -1346,11 +1308,6 @@
+   case 'd':
+     one_database = 1;
+     break;
+-  /* Set the table filter flag.
+-   * (Added by wangheng, email to wangheng.wh@alibaba-inc.com) */
+-  case 't':
+-    one_table = 1;
+-    break;
+   case 'p':
+     if (argument == disabled_my_option)
+       argument= (char*) "";                     // Don't require password
